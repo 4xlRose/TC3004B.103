@@ -4,10 +4,11 @@ import './index.css'
 import App from './App.jsx'
 import { CounterApp } from './components/CounterApp.jsx'
 import { SimpleForm } from './components/SimpleForm.jsx'
+import { OnePieceFruitCard } from './components/Card.jsx'
+import { CustomHook } from './components/CustomHook.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <SimpleForm />
-
+    <CustomHook/>
   </StrictMode>,
 )
