@@ -6,9 +6,11 @@ import { CounterApp } from './components/CounterApp.jsx'
 import { SimpleForm } from './components/SimpleForm.jsx'
 import { OnePieceFruitCard } from './components/Card.jsx'
 import { CustomHook } from './components/CustomHook.jsx'
+import { Focus } from './Focus.jsx'
+import { CallbackHook } from './CallbackHook.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <CustomHook/>
+    <CallbackHook/>
   </StrictMode>,
 )
