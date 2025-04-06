@@ -1,25 +1,96 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { Table, Button, Container, FormGroup, Modal, ModalHeader, ModalBody, ModalFooter } from "reactstrap";
+import { Table, Button, Container, Modal, ModalHeader, ModalBody, ModalFooter, FormGroup } from "reactstrap";
 
-const books = [
-    { id: 1, titulo: "El camino de los reyes", autor: "Brandon Sanderson", anio: 2010, editorial: "Tor Books", genero: "Fantasía épica", paginas: 1007 },
-    { id: 2, titulo: "Palabras radiantes", autor: "Brandon Sanderson", anio: 2014, editorial: "Tor Books", genero: "Fantasía épica", paginas: 1088 },
-    { id: 3, titulo: "Juramentada", autor: "Brandon Sanderson", anio: 2017, editorial: "Tor Books", genero: "Fantasía épica", paginas: 1248 },
-    { id: 4, titulo: "El ritmo de la guerra", autor: "Brandon Sanderson", anio: 2020, editorial: "Tor Books", genero: "Fantasía épica", paginas: 1232 },
-    { id: 5, titulo: "Juego de tronos", autor: "George R. R. Martin", anio: 1996, editorial: "Bantam Books", genero: "Fantasía", paginas: 694 },
-    { id: 6, titulo: "Choque de reyes", autor: "George R. R. Martin", anio: 1998, editorial: "Bantam Books", genero: "Fantasía", paginas: 761 },
-    { id: 7, titulo: "Tormenta de espadas", autor: "George R. R. Martin", anio: 2000, editorial: "Bantam Books", genero: "Fantasía", paginas: 973 },
-    { id: 8, titulo: "Festín de cuervos", autor: "George R. R. Martin", anio: 2005, editorial: "Bantam Books", genero: "Fantasía", paginas: 753 },
-    { id: 9, titulo: "Danza de dragones", autor: "George R. R. Martin", anio: 2011, editorial: "Bantam Books", genero: "Fantasía", paginas: 1040 },
-];
+function App() {
+    const [books, setBooks] = useState([]);
+    const [modalInsertar, setModalInsertar] = useState(false);
+    const [modalActualizar, setModalActualizar] = useState(false);
+    const [form, setForm] = useState({
+        id: "",
+        titulo: "",
+        autor: "",
+        anio: "",
+        editorial: "",
+        genero: "",
+        paginas: "",
+    });
 
-class BookManager extends React.Component {
-    state = {
-        books: books,
-        modalActualizar: false,
-        modalInsertar: false,
-        form: {
+    useEffect(() => {
+        axios.get("http://localhost:5000/books")
+            .then(response => setBooks(response.data))
+            .catch(error => console.error("Error al obtener los libros:", error));
+    }, []);
+
+    const handleChange = (e) => {
+        setForm({
+            ...form,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const insertar = () => {
+        const { titulo, autor, anio, editorial, genero, paginas } = form;
+
+        if (!titulo || !autor || !anio || !editorial || !genero || !paginas) {
+            alert("Todos los campos deben ser completados.");
+            return;
+        }
+
+        axios.post("http://localhost:5000/books", { titulo, autor, anio, editorial, genero, paginas })
+            .then((response) => {
+                setBooks([...books, response.data]);
+                setModalInsertar(false);
+                setForm({
+                    id: "",
+                    titulo: "",
+                    autor: "",
+                    anio: "",
+                    editorial: "",
+                    genero: "",
+                    paginas: "",
+                });
+            })
+            .catch((error) => console.error("Error al insertar libro:", error));
+    };
+
+    const editar = () => {
+        const { id, titulo, autor, anio, editorial, genero, paginas } = form;
+
+        axios.put(`http://localhost:5000/books/${id}`, { titulo, autor, anio, editorial, genero, paginas })
+            .then((res) => {
+                const updatedBooks = books.map((b) =>
+                    b.id === res.data.id ? { ...b, ...res.data } : b
+                );
+                setBooks(updatedBooks);
+                setModalActualizar(false);
+                setForm({
+                    id: "",
+                    titulo: "",
+                    autor: "",
+                    anio: "",
+                    editorial: "",
+                    genero: "",
+                    paginas: "",
+                });
+            })
+            .catch((err) => console.error("Error al actualizar el libro:", err));
+    };
+
+    const eliminar = (id) => {
+        if (window.confirm("¿Seguro que deseas eliminar este libro?")) {
+            axios.delete(`http://localhost:5000/books/${id}`)
+                .then(() => {
+                    const updatedBooks = books.filter((book) => book.id !== id);
+                    setBooks(updatedBooks);
+                })
+                .catch((error) => console.error("Error al eliminar el libro:", error));
+        }
+    };
+
+    const mostrarModalInsertar = () => {
+        setForm({
             id: "",
             titulo: "",
             autor: "",
@@ -27,120 +98,104 @@ class BookManager extends React.Component {
             editorial: "",
             genero: "",
             paginas: "",
-        },
+        });
+        setModalInsertar(true);
     };
 
-    mostrarModalActualizar = (libro) => {
-        this.setState({ form: libro, modalActualizar: true });
+    const mostrarModalActualizar = (book) => {
+        setForm(book);
+        setModalActualizar(true);
     };
 
-    cerrarModalActualizar = () => {
-        this.setState({ modalActualizar: false });
+    const cerrarModalInsertar = () => {
+        setModalInsertar(false);
     };
 
-    mostrarModalInsertar = () => {
-        this.setState({ modalInsertar: true });
+    const cerrarModalActualizar = () => {
+        setModalActualizar(false);
     };
 
-    cerrarModalInsertar = () => {
-        this.setState({ modalInsertar: false });
-    };
+    return (
+        <Container>
+            <h1 className="my-4">Lista de Libros</h1>
+            <Button color="success" onClick={mostrarModalInsertar}>Agregar Libro</Button>
+            <Table striped>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Autor</th>
+                        <th>Año</th>
+                        <th>Editorial</th>
+                        <th>Género</th>
+                        <th>Páginas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {books.map((book) => (
+                        <tr key={book.id}>
+                            <td>{book.id}</td>
+                            <td>{book.titulo}</td>
+                            <td>{book.autor}</td>
+                            <td>{book.anio}</td>
+                            <td>{book.editorial}</td>
+                            <td>{book.genero}</td>
+                            <td>{book.paginas}</td>
+                            <td>
+                                <Button color="primary" onClick={() => mostrarModalActualizar(book)}>Editar</Button>{" "}
+                                <Button color="danger" onClick={() => eliminar(book.id)}>Eliminar</Button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
 
-    editar = (libro) => {
-        const updatedBooks = this.state.books.map((b) => (b.id === libro.id ? { ...b, ...libro } : b));
-        this.setState({ books: updatedBooks, modalActualizar: false });
-    };
+            <Modal isOpen={modalInsertar}>
+                <ModalHeader>Agregar Libro</ModalHeader>
+                <ModalBody>
+                    {["titulo", "autor", "anio", "editorial", "genero", "paginas"].map((campo) => (
+                        <FormGroup key={campo}>
+                            <label>{campo.charAt(0).toUpperCase() + campo.slice(1)}:</label>
+                            <input
+                                className="form-control"
+                                name={campo}
+                                type="text"
+                                value={form[campo] || ""}
+                                onChange={handleChange}
+                            />
+                        </FormGroup>
+                    ))}
+                </ModalBody>
+                <ModalFooter>
+                    <Button color="primary" onClick={insertar}>Insertar</Button>
+                    <Button color="danger" onClick={cerrarModalInsertar}>Cancelar</Button>
+                </ModalFooter>
+            </Modal>
 
-    eliminar = (libro) => {
-        if (window.confirm(`¿Seguro que deseas eliminar "${libro.titulo}"?`)) {
-            const updatedBooks = this.state.books.filter((b) => b.id !== libro.id);
-            this.setState({ books: updatedBooks, modalActualizar: false });
-        }
-    };
-
-    insertar = () => {
-        const nuevoLibro = { ...this.state.form, id: this.state.books.length ? this.state.books[this.state.books.length - 1].id + 1 : 1 };
-        this.setState({ books: [...this.state.books, nuevoLibro], modalInsertar: false });
-    };
-
-    handleChange = (e) => {
-        this.setState({ form: { ...this.state.form, [e.target.name]: e.target.value } });
-    };
-
-    render() {
-        return (
-            <>
-                <Container>
-                    <br />
-                    <Button color="success" onClick={this.mostrarModalInsertar}>Agregar Libro</Button>
-                    <br /><br />
-                    <Table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Título</th>
-                                <th>Autor</th>
-                                <th>Año</th>
-                                <th>Editorial</th>
-                                <th>Género</th>
-                                <th>Páginas</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {this.state.books.map((libro) => (
-                                <tr key={libro.id}>
-                                    <td>{libro.id}</td>
-                                    <td>{libro.titulo}</td>
-                                    <td>{libro.autor}</td>
-                                    <td>{libro.anio}</td>
-                                    <td>{libro.editorial}</td>
-                                    <td>{libro.genero}</td>
-                                    <td>{libro.paginas}</td>
-                                    <td>
-                                        <Button color="primary" onClick={() => this.mostrarModalActualizar(libro)}>Editar</Button>{" "}
-                                        <Button color="danger" onClick={() => this.eliminar(libro)}>Eliminar</Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                </Container>
-
-                <Modal isOpen={this.state.modalInsertar}>
-                    <ModalHeader>Agregar Libro</ModalHeader>
-                    <ModalBody>
-                        {["titulo", "autor", "año", "editorial", "genero", "paginas"].map((campo) => (
-                            <FormGroup key={campo}>
-                                <label>{campo.charAt(0).toUpperCase() + campo.slice(1)}:</label>
-                                <input className="form-control" name={campo} type="text" onChange={this.handleChange} />
-                            </FormGroup>
-                        ))}
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button color="primary" onClick={this.insertar}>Insertar</Button>
-                        <Button color="danger" onClick={this.cerrarModalInsertar}>Cancelar</Button>
-                    </ModalFooter>
-                </Modal>
-
-                <Modal isOpen={this.state.modalActualizar}>
-                    <ModalHeader>Editar Libro</ModalHeader>
-                    <ModalBody>
-                        {["titulo", "autor", "año", "editorial", "genero", "paginas"].map((campo) => (
-                            <FormGroup key={campo}>
-                                <label>{campo.charAt(0).toUpperCase() + campo.slice(1)}:</label>
-                                <input className="form-control" name={campo} type="text" onChange={this.handleChange} value={this.state.form[campo] || ""} />
-                            </FormGroup>
-                        ))}
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button color="primary" onClick={() => this.editar(this.state.form)}>Editar</Button>
-                        <Button color="danger" onClick={this.cerrarModalActualizar}>Cancelar</Button>
-                    </ModalFooter>
-                </Modal>
-            </>
-        );
-    }
+            <Modal isOpen={modalActualizar}>
+                <ModalHeader>Editar Libro</ModalHeader>
+                <ModalBody>
+                    {["titulo", "autor", "anio", "editorial", "genero", "paginas"].map((campo) => (
+                        <FormGroup key={campo}>
+                            <label>{campo.charAt(0).toUpperCase() + campo.slice(1)}:</label>
+                            <input
+                                className="form-control"
+                                name={campo}
+                                type="text"
+                                value={form[campo] || ""}
+                                onChange={handleChange}
+                            />
+                        </FormGroup>
+                    ))}
+                </ModalBody>
+                <ModalFooter>
+                    <Button color="primary" onClick={editar}>Actualizar</Button>
+                    <Button color="danger" onClick={cerrarModalActualizar}>Cancelar</Button>
+                </ModalFooter>
+            </Modal>
+        </Container>
+    );
 }
 
-export default BookManager;
+export default App;
